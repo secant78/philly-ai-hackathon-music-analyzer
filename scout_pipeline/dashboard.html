@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A&amp;R Radar</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --ink: #1b1f24; --muted: #667085; --line: #e3e6ea;
+    --human: #1a9850; --review: #d98a00; --ai: #d73027; --accent: #3b5bdb;
+    --human-bg: #e6f4ec; --review-bg: #fdf1dc; --ai-bg: #fbe6e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1216; --card: #171b21; --ink: #e8ebef; --muted: #98a2b3; --line: #262c35;
+      --human: #46c37b; --review: #f0b03a; --ai: #ff6b62; --accent: #7b93ff;
+      --human-bg: #14301f; --review-bg: #3a2c0c; --ai-bg: #3c1815;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); border-radius: 8px; padding: 7px 13px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .55; cursor: default; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 24px; letter-spacing: -.01em; }
+  .stat span { color: var(--muted); font-size: 13px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .spacer { flex: 1; }
+  select { font: inherit; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+           border-radius: 8px; padding: 6px 8px; }
+  label.toggle { color: var(--muted); font-size: 13px; display: flex; gap: 5px; align-items: center; }
+  .runlog { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+            padding: 10px 14px; margin-bottom: 14px; font: 13px/1.5 ui-monospace, Consolas, monospace;
+            white-space: pre-wrap; color: var(--muted); }
+  .runlog.show { display: block; }
+  .card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
+          border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+          display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+  .card.HUMAN { border-left-color: var(--human); }
+  .card.REVIEW { border-left-color: var(--review); }
+  .card.AI { border-left-color: var(--ai); opacity: .8; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; margin-right: 8px; }
+  .HUMAN .badge { background: var(--human-bg); color: var(--human); }
+  .REVIEW .badge { background: var(--review-bg); color: var(--review); }
+  .AI .badge { background: var(--ai-bg); color: var(--ai); }
+  .title { font-weight: 600; font-size: 16px; color: var(--ink); text-decoration: none; }
+  .title:hover { text-decoration: underline; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .score { text-align: right; min-width: 90px; }
+  .score b { font-size: 32px; line-height: 1; letter-spacing: -.02em; }
+  .score span { display: block; color: var(--muted); font-size: 12px; }
+  .full { grid-column: 1 / -1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .m { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+  .m b { font-weight: 600; }
+  .flags { margin: 2px 0; padding: 0; list-style: none; }
+  .flags li { color: var(--ai); font-size: 13px; }
+  .flags li::before { content: "\26A0\FE0E  "; }
+  .ev { color: var(--muted); font-size: 13px; }
+  .actions { display: flex; gap: 8px; align-items: center; }
+  .actions button, .actions a { font-size: 13px; padding: 4px 10px; }
+  .actions a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; }
+  .star.on { color: #e0a800; border-color: #e0a800; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 0; }
+  .demo-tag { font-size: 11px; color: var(--muted); border: 1px dashed var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+  @media (max-width: 560px) { .card { grid-template-columns: 1fr; } .score { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>A&amp;R Radar</h1>
+      <p class="sub">Human-verified leads from SoundCloud, ranked by real traction.</p>
+    </div>
+    <div class="actions">
+      <button id="scanBtn" class="primary">Scan now</button>
+    </div>
+  </header>
+
+  <div id="runlog" class="runlog"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="bar">
+    <button class="chip on" data-f="all">All</button>
+    <button class="chip" data-f="HUMAN">Human</button>
+    <button class="chip" data-f="REVIEW">Needs review</button>
+    <button class="chip" data-f="AI">AI (discarded)</button>
+    <button class="chip" data-f="star">&#9733; Shortlist</button>
+    <span class="spacer"></span>
+    <label class="toggle"><input type="checkbox" id="demo"> Show demo data</label>
+    <select id="sort">
+      <option value="score">Sort: A&amp;R score</option>
+      <option value="plays">Sort: plays</option>
+      <option value="recent">Sort: newest upload</option>
+      <option value="risk">Sort: bot risk</option>
+    </select>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<script>
+const state = { tracks: [], filter: "all", sort: "score", demo: false };
+const LABEL = { HUMAN: "Human", REVIEW: "Needs review", AI: "AI" };
+
+// Titles and artist names come from SoundCloud, so build the DOM with textContent only.
+function el(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c);
+  return e;
+}
+const safeUrl = u => (typeof u === "string" && u.startsWith("https://")) ? u : "#";
+const fmt = n => (n == null ? "-" : Number(n).toLocaleString());
+
+function shortlist() {
+  try { return new Set(JSON.parse(localStorage.getItem("shortlist") || "[]")); } catch { return new Set(); }
+}
+function saveShortlist(set) {
+  try { localStorage.setItem("shortlist", JSON.stringify([...set])); } catch {}
+}
+function ageText(ts) {
+  if (!ts) return "";
+  const h = (Date.now() / 1000 - ts) / 3600;
+  return h < 48 ? `${Math.round(h)}h old` : `${Math.round(h / 24)}d old`;
+}
+
+async function load() {
+  const res = await fetch("/api/tracks" + (state.demo ? "?demo=1" : ""));
+  state.tracks = (await res.json()).tracks;
+  render();
+}
+
+function sorted(list) {
+  const by = {
+    score: (a, b) => (b.score ?? -1) - (a.score ?? -1),
+    plays: (a, b) => (b.metrics.plays ?? -1) - (a.metrics.plays ?? -1),
+    recent: (a, b) => (b.uploaded_at ?? 0) - (a.uploaded_at ?? 0),
+    risk: (a, b) => (b.bot_risk ?? -1) - (a.bot_risk ?? -1),
+  }[state.sort];
+  return [...list].sort(by);
+}
+
+function renderStats() {
+  const t = state.tracks, n = v => t.filter(x => x.verdict === v).length;
+  const suspicious = t.filter(x => (x.bot_risk ?? 0) >= 40).length;
+  const spam = t.length ? Math.round(100 * n("AI") / t.length) : 0;
+  const cells = [
+    [t.length, "tracks scanned"], [n("HUMAN"), "human"], [n("REVIEW"), "need review"],
+    [n("AI"), `AI (${spam}% of scans)`], [suspicious, "suspicious plays"],
+  ];
+  $("#stats").replaceChildren(...cells.map(([v, l]) => el("div", { class: "stat" }, el("b", { text: v }), el("span", { text: l }))));
+}
+
+function card(t, stars) {
+  const m = t.metrics || {};
+  const chips = t.followers == null && !m.plays ? [] : [
+    ["plays", fmt(m.plays)], ["likes", fmt(m.likes)], ["reposts", fmt(m.reposts)],
+    ["comments", fmt(m.comments)], ["followers", fmt(t.followers)],
+    ["plays/follower", m.plays_per_follower ?? "-"],
+  ].map(([k, v]) => el("span", { class: "m" }, el("b", { text: v + " " }), k));
+
+  const ev = t.evidence || {};
+  const evParts = [];
+  if (ev.confidence != null) evParts.push(`HumanStandard confidence ${Math.round(ev.confidence * 100)}%`);
+  if (ev.origin && !["human", "uncertain"].includes(ev.origin)) evParts.push(`likely ${ev.origin}`);
+  if (ev.label_status) evParts.push(ev.label_status.replace(/_/g, " "));
+  if (ev.peak_risk != null && t.verdict !== "HUMAN") evParts.push(`peak AI risk ${Math.round(ev.peak_risk * 100)}%`);
+
+  const meta = [t.artist, ageText(t.uploaded_at), t.genre].filter(Boolean).join(" · ");
+  const isStar = stars.has(t.url);
+  const star = el("button", { class: "star" + (isStar ? " on" : ""), text: isStar ? "★ Shortlisted" : "☆ Shortlist",
+    onclick: () => { const s = shortlist(); s.has(t.url) ? s.delete(t.url) : s.add(t.url); saveShortlist(s); render(); } });
+
+  return el("div", { class: `card ${t.verdict}` },
+    el("div", {},
+      el("div", {}, el("span", { class: "badge", text: LABEL[t.verdict] || t.verdict }),
+        el("a", { class: "title", href: safeUrl(t.url), target: "_blank", rel: "noopener", text: t.title }),
+        t.demo ? el("span", { class: "demo-tag", text: "demo" }) : null),
+      el("div", { class: "meta", text: meta })),
+    el("div", { class: "score" },
+      t.score == null ? el("b", { text: t.verdict === "AI" ? "—" : "?" }) : el("b", { text: t.score }),
+      el("span", { text: t.verdict === "AI" ? "discarded" : "A&R score" }),
+      t.bot_risk != null ? el("span", { text: `bot risk ${t.bot_risk}` }) : null),
+    chips.length ? el("div", { class: "full chips" }, chips) : null,
+    (t.flags || []).length ? el("ul", { class: "full flags" }, t.flags.map(f => el("li", { text: f }))) : null,
+    evParts.length ? el("div", { class: "full ev", text: evParts.join(" · ") }) : null,
+    ev.nearest ? el("div", { class: "full ev", text: ev.nearest }) : null,
+    el("div", { class: "full actions" }, star,
+      t.report ? el("a", { href: "/reports/" + encodeURIComponent(t.report), target: "_blank", text: "Full report" }) : null));
+}
+
+function render() {
+  renderStats();
+  const stars = shortlist();
+  let list = state.tracks;
+  if (state.filter === "star") list = list.filter(t => stars.has(t.url));
+  else if (state.filter !== "all") list = list.filter(t => t.verdict === state.filter);
+  list = sorted(list);
+  $("#list").replaceChildren(...(list.length ? list.map(t => card(t, stars))
+    : [el("div", { class: "empty", text: state.tracks.length ? "Nothing matches this filter." : "No scans yet. Click “Scan now”." })]));
+}
+
+const $ = s => document.querySelector(s);
+document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b));
+  state.filter = b.dataset.f; render();
+}));
+$("#sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
+$("#demo").addEventListener("change", e => { state.demo = e.target.checked; load(); });
+
+async function poll() {
+  const s = await (await fetch("/api/status")).json();
+  const box = $("#runlog");
+  box.classList.add("show");
+  box.textContent = (s.running ? "Scanning…\n" : "") + s.log.join("\n");
+  if (s.running) return setTimeout(poll, 2000);
+  $("#scanBtn").disabled = false;
+  await load();
+}
+$("#scanBtn").addEventListener("click", async () => {
+  const s = await (await fetch("/api/status")).json();
+  const demo = state.demo;
+  const msg = demo ? "Run a demo scan? It uses free mock scans."
+    : `Run a live scan? It downloads new tracks and spends up to ${s.scan_budget} HumanStandard credits.`;
+  if (!confirm(msg)) return;
+  $("#scanBtn").disabled = true;
+  const res = await fetch("/api/run" + (demo ? "?demo=1" : ""), { method: "POST", headers: { "X-Requested-With": "dashboard" } });
+  if (!res.ok) { $("#scanBtn").disabled = false; alert((await res.json()).error || "Could not start the scan"); return; }
+  poll();
+});
+
+load();
+// If a scan is already running (page reload mid-scan), reattach to it.
+fetch("/api/status").then(r => r.json()).then(s => { if (s.running) { $("#scanBtn").disabled = true; poll(); } });
+</script>
+</body>
+</html>

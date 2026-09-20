@@ -33,6 +33,21 @@ def demo_tracks() -> list[Track]:
     ]
 
 
+def track_details(track: Track, a: analyst.Assessment, score: int | None, report) -> dict:
+    """Everything the dashboard shows that is not in the raw HumanStandard payload."""
+    return {
+        "uploaded_at": track.uploaded_at,
+        "followers": track.followers,
+        "genre": track.extra.get("genre"),
+        "momentum": a.momentum,
+        "bot_risk": a.bot_risk,
+        "flags": a.flags,
+        "metrics": a.metrics,
+        "score": score,
+        "report": report.name if report else None,
+    }
+
+
 def run(demo: bool) -> int:
     conn = db.connect()
     if demo:
@@ -42,6 +57,7 @@ def run(demo: bool) -> int:
 
         seen = {row[0] for row in conn.execute("SELECT url FROM tracks")}
         tracks = scout.discover(seen)
+
     # Credits are scarce, so scan the tracks with the best traction first. Suspected
     # play farming sinks to the bottom, because momentum is discounted by bot risk.
     def priority(track: Track) -> float:
@@ -70,20 +86,26 @@ def run(demo: bool) -> int:
         except Exception as exc:  # keep going; one bad track shouldn't stop the run
             print(f"  ERROR  {label}: {exc}")
             continue
-        db.record_scan(conn, track, result.verdict, result.evidence)
+
+        a = analyst.assess(track)
+        score, report = None, None
+        if result.verdict != forensic.AI:
+            score = outreach.scorecard_score(result.verdict, a)
+            try:
+                report = outreach.write_report(track, result.verdict, result.evidence, a, score)
+            except Exception as exc:  # the scan already cost a credit, so still record it
+                print(f"  WARN   could not write report for {label}: {exc}")
+            db.record_scorecard(conn, track.url, score, a.bot_risk)
+        db.record_scan(conn, track, result.verdict, result.evidence, track_details(track, a, score, report))
 
         if result.verdict == forensic.AI:
             print(f"  AI     {label}: discarded, logged as synthetic spam")
             continue
-
-        a = analyst.assess(track)
-        score = outreach.scorecard_score(result.verdict, a)
-        db.record_scorecard(conn, track.url, score, a.bot_risk)
-        report = outreach.write_report(track, result.verdict, result.evidence, a, score)
         tag = "REVIEW" if result.verdict == forensic.REVIEW else "HUMAN "
-        print(f"  {tag} {label}: score {score}, bot risk {a.bot_risk} -> {report.name}")
+        print(f"  {tag} {label}: score {score}, bot risk {a.bot_risk}")
         if score >= config.ALERT_MIN_SCORE and a.bot_risk < 50:
             outreach.alert(track, result.verdict, a, score)
+    print("Done.")
     return 0
 
 
