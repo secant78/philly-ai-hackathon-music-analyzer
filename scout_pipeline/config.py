@@ -17,6 +17,13 @@ MAX_TRACK_MINUTES = float(os.getenv("MAX_TRACK_MINUTES", "10"))
 # account with hundreds of uploads is a channel or aggregator, not one artist. 0 disables each.
 MAX_FOLLOWERS = int(os.getenv("MAX_FOLLOWERS", "1000"))
 MAX_UPLOADER_TRACKS = int(os.getenv("MAX_UPLOADER_TRACKS", "200"))
+# Titles containing any of these words are skipped: A&R wants original songs, not covers or
+# remixes of someone else's. Set to an empty value to allow everything.
+EXCLUDE_TITLE_WORDS = [
+    w.strip().lower()
+    for w in os.getenv("EXCLUDE_TITLE_WORDS", "cover,remix,bootleg,mashup,flip,rework,refix").split(",")
+    if w.strip()
+]
 
 # Search terms and profile URLs to watch, comma separated.
 SC_QUERIES = [q.strip() for q in os.getenv("SC_QUERIES", "unsigned artist,new music").split(",") if q.strip()]

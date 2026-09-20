@@ -1,4 +1,5 @@
 """Step 1: Scout agent. Finds fresh SoundCloud uploads and pulls audio via yt-dlp."""
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -90,6 +91,11 @@ def _fetch_tracks(client: httpx.Client, cid: str) -> list[dict]:
     return raw
 
 
+def _is_derivative(title: str) -> bool:
+    """True for covers, remixes and similar, matched as whole words in the title."""
+    return any(re.search(rf"\b{re.escape(w)}(s|ed)?\b", title, re.IGNORECASE) for w in config.EXCLUDE_TITLE_WORDS)
+
+
 def discover(seen_urls: set[str]) -> list[Track]:
     """Return unseen, downloadable tracks from emerging artists uploaded within MAX_AGE_HOURS."""
     cutoff = time.time() - config.MAX_AGE_HOURS * 3600
@@ -103,6 +109,8 @@ def discover(seen_urls: set[str]) -> list[Track]:
                 continue
             if track.duration > config.MAX_TRACK_MINUTES * 60:
                 continue  # skip DJ mixes and podcasts
+            if _is_derivative(track.title):
+                continue  # covers, remixes and bootlegs are not original work
             if config.MAX_FOLLOWERS and track.followers > config.MAX_FOLLOWERS:
                 continue  # already established, likely signed
             uploads = track.extra.get("uploader_tracks") or 0

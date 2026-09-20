@@ -75,6 +75,7 @@ Set these in `scout_pipeline/.env`:
 | `SC_QUERIES` | `unsigned artist,new music` | SoundCloud search terms, comma separated |
 | `MAX_FOLLOWERS` | 1000 | Skip uploaders with more followers (likely signed already) |
 | `MAX_UPLOADER_TRACKS` | 200 | Skip accounts with more uploads (channels, aggregators) |
+| `EXCLUDE_TITLE_WORDS` | `cover,remix,bootleg,mashup,flip,rework,refix` | Skip titles containing these whole words (originals only). Empty allows everything. |
 | `SLACK_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL` | empty | Optional alerts for strong leads |
 
 ## How the A&R score works
