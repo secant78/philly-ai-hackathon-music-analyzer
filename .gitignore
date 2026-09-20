@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.claude/
+__pycache__/
+*.pyc
+.venv/
+scout_pipeline/data/
+scout_pipeline/tmp/
+scout_pipeline/reports/
