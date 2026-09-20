@@ -1,6 +1,7 @@
 """Step 1: Scout agent. Finds fresh SoundCloud uploads and pulls audio via yt-dlp."""
 import re
 import time
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -96,6 +97,25 @@ def _is_derivative(title: str) -> bool:
     return any(re.search(rf"\b{re.escape(w)}(s|ed)?\b", title, re.IGNORECASE) for w in config.EXCLUDE_TITLE_WORDS)
 
 
+def _norm(text: str) -> str:
+    """Casefold, fold fancy unicode letters, and drop spaces and punctuation."""
+    return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", text).casefold())
+
+
+def _credits_other_artist(title: str, uploader: str) -> bool:
+    """True when the title credits someone other than the uploader: 'Other Artist - Song',
+    'Original Song by ...', 'originally by ...'. Such uploads are borrowed or cover material."""
+    if re.search(r"\b(original song by|originally (performed )?by)\b", title, re.IGNORECASE):
+        return True
+    parts = re.split(r"\s[-–—]\s", title, maxsplit=1)
+    if len(parts) < 2:
+        return False
+    credited, name = _norm(parts[0]), _norm(uploader)
+    if not credited or not name:
+        return False
+    return credited not in name and name not in credited
+
+
 def discover(seen_urls: set[str]) -> list[Track]:
     """Return unseen, downloadable tracks from emerging artists uploaded within MAX_AGE_HOURS."""
     cutoff = time.time() - config.MAX_AGE_HOURS * 3600
@@ -111,6 +131,8 @@ def discover(seen_urls: set[str]) -> list[Track]:
                 continue  # skip DJ mixes and podcasts
             if _is_derivative(track.title):
                 continue  # covers, remixes and bootlegs are not original work
+            if _credits_other_artist(track.title, track.artist):
+                continue  # someone else's song, not the uploader's
             if config.MAX_FOLLOWERS and track.followers > config.MAX_FOLLOWERS:
                 continue  # already established, likely signed
             uploads = track.extra.get("uploader_tracks") or 0
