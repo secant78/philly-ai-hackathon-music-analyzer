@@ -44,6 +44,7 @@ def assess(track: Track) -> Assessment:
 
     # Momentum: engagement quality (60%) and reach (40%), both log-scaled and capped.
     engagement = min((like_rate * 100 + repost_rate * 300 + comment_rate * 500) / 12, 1.0)
+    engagement *= min(plays / 100, 1.0)  # rates on a handful of plays are noise
     reach = min(math.log10(plays + 1) / 5, 1.0)
     momentum = round((engagement * 0.6 + reach * 0.4) * 100 * (1 - risk / 150))
 

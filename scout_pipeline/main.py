@@ -81,6 +81,7 @@ def run(demo: bool) -> int:
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # artist names are not always ASCII
     p = argparse.ArgumentParser()
     p.add_argument("--demo", action="store_true")
     sys.exit(run(p.parse_args().demo))

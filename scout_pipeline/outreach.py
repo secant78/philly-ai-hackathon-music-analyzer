@@ -21,6 +21,26 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "track"
 
 
+def evidence_rows(evidence: dict) -> str:
+    """Pick the readable HumanStandard fields instead of dumping the raw payload."""
+    timeline = evidence.get("risk_timeline") or []
+    fields = {
+        "verdict": evidence.get("verdict"),
+        "confidence": evidence.get("confidence"),
+        "detected origin": evidence.get("origin"),
+        "label": evidence.get("industry_label"),
+        "label status": evidence.get("industry_label_status"),
+        "nearest reference recordings": (evidence.get("origin_map") or {}).get("summary_line"),
+        "peak AI risk in track": max(timeline) if timeline else None,
+        "model version": evidence.get("model_version"),
+    }
+    return "".join(
+        f"<tr><td>{html.escape(k)}</td><td>{html.escape(str(v))}</td></tr>"
+        for k, v in fields.items()
+        if v is not None
+    )
+
+
 def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score: int) -> str:
     esc = html.escape
     color = {"HUMAN": "#1a9850", "REVIEW": "#f5a623", "AI": "#d73027"}[verdict]
@@ -41,7 +61,7 @@ def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score
  &nbsp; A&amp;R score <b>{score}/100</b> · bot risk <b>{a.bot_risk}/100</b> · momentum <b>{a.momentum}/100</b></p>
 {note}<h3>Traction</h3><table cellpadding="4">{rows}</table>
 <h3>Bot &amp; hype flags</h3><ul>{flags}</ul>
-<h3>HumanStandard evidence</h3><pre style="white-space:pre-wrap;background:#f6f6f6;padding:.6rem">{esc(str(evidence))}</pre>
+<h3>HumanStandard evidence</h3><table cellpadding="4">{evidence_rows(evidence)}</table>
 <p style="color:#888;font-size:.85em">Generated {datetime.now():%Y-%m-%d %H:%M}</p></body>"""
 
 

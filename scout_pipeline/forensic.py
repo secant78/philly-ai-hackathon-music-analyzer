@@ -24,10 +24,12 @@ def _normalize(result: dict) -> str:
     if raw == "human":
         return HUMAN
     if raw == "ai":
-        # Auto-discard only when the low-false-positive tier agrees, so we never
-        # bin a human artist on a borderline call. tier_verdicts needs detail=full.
+        # Auto-discard only when the strict signals agree, so we never bin a human
+        # artist on a borderline call. Either field may be absent, which means no objection.
         tiers = result.get("tier_verdicts") or {}
         if tiers.get("human_safe", "ai") != "ai":
+            return REVIEW
+        if result.get("industry_label_status", "meets_definition") != "meets_definition":
             return REVIEW
         return AI
     if raw in {"uncertain", "suspicious"}:

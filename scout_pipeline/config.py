@@ -13,6 +13,8 @@ HS_API_KEY = os.getenv("HS_API_KEY", "")
 MAX_SCANS_PER_RUN = int(os.getenv("MAX_SCANS_PER_RUN", "10"))
 MAX_AGE_HOURS = float(os.getenv("MAX_AGE_HOURS", "24"))
 MAX_TRACK_MINUTES = float(os.getenv("MAX_TRACK_MINUTES", "10"))
+# Emerging-artist filter: skip uploaders with more followers than this. 0 disables it.
+MAX_FOLLOWERS = int(os.getenv("MAX_FOLLOWERS", "10000"))
 
 # Search terms and profile URLs to watch, comma separated.
 SC_QUERIES = [q.strip() for q in os.getenv("SC_QUERIES", "unsigned artist,new music").split(",") if q.strip()]
