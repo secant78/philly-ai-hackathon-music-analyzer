@@ -51,7 +51,7 @@ def _track_from_api(t: dict) -> Track:
         reposts=int(t.get("reposts_count") or 0),
         comments=int(t.get("comment_count") or 0),
         followers=int(user.get("followers_count") or 0),
-        extra={"policy": t.get("policy"), "genre": t.get("genre")},
+        extra={"policy": t.get("policy"), "genre": t.get("genre"), "uploader_tracks": user.get("track_count")},
     )
 
 
@@ -104,7 +104,10 @@ def discover(seen_urls: set[str]) -> list[Track]:
             if track.duration > config.MAX_TRACK_MINUTES * 60:
                 continue  # skip DJ mixes and podcasts
             if config.MAX_FOLLOWERS and track.followers > config.MAX_FOLLOWERS:
-                continue  # already established, not an emerging artist
+                continue  # already established, likely signed
+            uploads = track.extra.get("uploader_tracks") or 0
+            if config.MAX_UPLOADER_TRACKS and uploads > config.MAX_UPLOADER_TRACKS:
+                continue  # a channel or aggregator posting many artists' music
             found[track.url] = track
     return sorted(found.values(), key=lambda t: t.uploaded_at, reverse=True)
 

@@ -38,6 +38,7 @@ def track_details(track: Track, a: analyst.Assessment, score: int | None, report
     return {
         "uploaded_at": track.uploaded_at,
         "followers": track.followers,
+        "uploader_tracks": track.extra.get("uploader_tracks"),
         "genre": track.extra.get("genre"),
         "momentum": a.momentum,
         "bot_risk": a.bot_risk,
