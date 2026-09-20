@@ -14,13 +14,22 @@ class Assessment:
     metrics: dict = field(default_factory=dict)
 
 
+def momentum_parts(plays: int, likes: int, reposts: int, comments: int) -> tuple[float, float]:
+    """Engagement and reach, each 0-1. Momentum is 60% engagement plus 40% reach."""
+    if plays <= 0:
+        return 0.0, 0.0
+    # Comments count most, then reposts, then likes.
+    engagement = min((likes / plays * 100 + reposts / plays * 300 + comments / plays * 500) / 12, 1.0)
+    engagement *= min(plays / 100, 1.0)  # rates on a handful of plays are noise
+    reach = min(math.log10(plays + 1) / 5, 1.0)  # log scale: about 100,000 plays maxes it out
+    return engagement, reach
+
+
 def assess(track: Track) -> Assessment:
     hours = max((time.time() - track.uploaded_at) / 3600, 1.0)
     plays = max(track.plays, 0)
     followers = max(track.followers, 1)
     like_rate = track.likes / plays if plays else 0.0
-    repost_rate = track.reposts / plays if plays else 0.0
-    comment_rate = track.comments / plays if plays else 0.0
     velocity = plays / hours
     plays_per_follower = plays / followers
 
@@ -42,10 +51,7 @@ def assess(track: Track) -> Assessment:
         flags.append(f"Extreme velocity: {velocity:,.0f} plays/hour")
     risk = min(risk, 100)
 
-    # Momentum: engagement quality (60%) and reach (40%), both log-scaled and capped.
-    engagement = min((like_rate * 100 + repost_rate * 300 + comment_rate * 500) / 12, 1.0)
-    engagement *= min(plays / 100, 1.0)  # rates on a handful of plays are noise
-    reach = min(math.log10(plays + 1) / 5, 1.0)
+    engagement, reach = momentum_parts(plays, track.likes, track.reposts, track.comments)
     momentum = round((engagement * 0.6 + reach * 0.4) * 100 * (1 - risk / 150))
 
     return Assessment(

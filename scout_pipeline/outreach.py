@@ -5,6 +5,7 @@ from datetime import datetime
 
 import httpx
 
+import analyst
 import config
 import explain
 from analyst import Assessment
@@ -56,6 +57,19 @@ a { color:var(--accent); }
 .summary .txt p { margin:3px 0 0; color:var(--muted); font-size:14px; }
 .notice { margin-top:12px; padding:10px 14px; border-radius:10px; background:var(--review-bg); color:var(--review); font-size:14px; }
 
+.how { flex-basis:100%; border-top:1px solid var(--line); padding-top:16px; }
+.how h3 { margin:0 0 12px; font-size:12.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+.hrow { display:grid; grid-template-columns:120px 1fr 36px; gap:3px 14px; align-items:center; margin-bottom:12px; }
+.hn b { display:block; font-size:14px; }
+.hn span { color:var(--muted); font-size:12px; }
+.hbar { height:8px; background:var(--soft); border-radius:99px; overflow:hidden; }
+.hbar i { display:block; height:100%; background:var(--accent); border-radius:99px; }
+.hv { text-align:right; font-weight:700; }
+.hd { grid-column:2 / -1; color:var(--muted); font-size:12.5px; }
+.hsum { margin:6px 0 0; padding:10px 14px; background:var(--soft); border-radius:10px; font-size:13.5px; }
+.hsum div + div { margin-top:3px; }
+.hsum .adj { color:var(--review); }
+@media (max-width:520px) { .hrow { grid-template-columns:1fr 36px; } .hbar { grid-column:1; } .hd { grid-column:1 / -1; } }
 .card { background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:18px 20px; margin-top:14px; }
 h2 { margin:0 0 12px; font-size:12.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
 
@@ -137,6 +151,37 @@ def traction_html(a: Assessment) -> str:
         + "</div>"
         for v, label, note in cells
     ) + "</div>"
+
+
+def how_html(verdict: str, a: Assessment, score: int) -> str:
+    """Show where this track's score came from, using its own numbers."""
+    m = a.metrics
+    eng, reach = analyst.momentum_parts(m["plays"], m["likes"], m["reposts"], m["comments"])
+    e, r = round(eng * 100), round(reach * 100)
+    raw = round(eng * 60 + reach * 40)
+    rows = [
+        ("Engagement", "60% of momentum", e,
+         f"{m['likes']:,} likes, {m['reposts']:,} reposts and {m['comments']:,} comments on {m['plays']:,} plays. "
+         "Comments count most, then reposts, then likes."),
+        ("Reach", "40% of momentum", r,
+         f"{m['plays']:,} plays, on a scale where about 100,000 plays is the maximum."),
+    ]
+    body = "".join(
+        f"<div class='hrow'><div class='hn'><b>{esc(n)}</b><span>{esc(w)}</span></div>"
+        f"<div class='hbar'><i style='width:{v}%'></i></div><div class='hv'>{v}</div>"
+        f"<div class='hd'>{esc(d)}</div></div>"
+        for n, w, v, d in rows
+    )
+    lines = [f"<div>Momentum = 60% &times; {e} + 40% &times; {r} = <b>{raw}</b></div>"]
+    after_penalty = round(a.momentum * (1 - a.bot_risk / 100))  # the score applies the penalty on top of momentum
+    if raw - after_penalty > 0:
+        lines.append(
+            f"<div class='adj'>Play-farming penalty: &minus;{raw - after_penalty} points for suspicious play patterns</div>"
+        )
+    if verdict == "REVIEW":
+        lines.append("<div class='adj'>Borderline HumanStandard verdict: score reduced by 20%</div>")
+    lines.append(f"<div><b>A&amp;R score = {score}</b></div>")
+    return f"<div class='how'><h3>How this score is calculated</h3>{body}<div class='hsum'>{''.join(lines)}</div></div>"
 
 
 def play_warning_html(a: Assessment) -> str:
@@ -236,7 +281,8 @@ def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score
 <main class="wrap">
   <section class="summary">
     <div class="ring" style="--p:{score};--c:{ring_color}"><b>{score}</b></div>
-    <div class="txt"><b>A&amp;R score {score}/100</b><p>{esc(blurb)} Momentum {a.momentum}/100.</p>{notice}</div>
+    <div class="txt"><b>A&amp;R score {score}/100</b><p>{esc(blurb)}</p>{notice}</div>
+    {how_html(verdict, a, score)}
   </section>
   <section class="card"><h2>Traction</h2>{traction_html(a)}</section>
   {play_warning_html(a)}
