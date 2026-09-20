@@ -6,120 +6,211 @@
 <title>A&amp;R Radar</title>
 <style>
   :root {
-    --bg: #f5f6f8; --card: #fff; --ink: #1b1f24; --muted: #667085; --line: #e3e6ea;
-    --human: #1a9850; --review: #d98a00; --ai: #d73027; --accent: #3b5bdb;
-    --human-bg: #e6f4ec; --review-bg: #fdf1dc; --ai-bg: #fbe6e4;
+    --bg: #f4f5fa; --card: #ffffff; --ink: #161a2b; --muted: #5f6680; --line: #e4e6f0; --soft: #f0f1f8;
+    --accent: #5b3df5; --accent-ink: #ffffff;
+    --human: #12915a; --review: #c9820a; --ai: #d6352c;
+    --human-bg: #e3f5ec; --review-bg: #fcefd6; --ai-bg: #fbe5e3;
+    --shadow: 0 1px 2px rgba(22, 26, 43, .05), 0 6px 18px rgba(22, 26, 43, .06);
+    --hero: linear-gradient(135deg, #3a27c9 0%, #5b3df5 55%, #8a5cff 100%);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f1216; --card: #171b21; --ink: #e8ebef; --muted: #98a2b3; --line: #262c35;
-      --human: #46c37b; --review: #f0b03a; --ai: #ff6b62; --accent: #7b93ff;
-      --human-bg: #14301f; --review-bg: #3a2c0c; --ai-bg: #3c1815;
+      --bg: #0d0f1a; --card: #161928; --ink: #eceefa; --muted: #9aa1bf; --line: #262b41; --soft: #1d2136;
+      --accent: #8d78ff; --accent-ink: #0d0f1a;
+      --human: #45c98a; --review: #f2b13f; --ai: #ff6d63;
+      --human-bg: #12301f; --review-bg: #38290b; --ai-bg: #3b1714;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+      --hero: linear-gradient(135deg, #1a1450 0%, #2d1f7a 60%, #45298f 100%);
     }
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
-  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
-  h1 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
-  .sub { color: var(--muted); margin: 2px 0 0; }
-  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
-           color: var(--ink); border-radius: 8px; padding: 7px 13px; }
-  button:hover { border-color: var(--accent); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button:disabled { opacity: .55; cursor: default; }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-  .stat b { display: block; font-size: 24px; letter-spacing: -.01em; }
-  .stat span { color: var(--muted); font-size: 13px; }
-  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+         font: 15px/1.5 "Segoe UI Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  button { font: inherit; cursor: pointer; color: inherit; }
+
+  /* ---------- hero ---------- */
+  .hero { background: var(--hero); color: #fff; padding: 30px 0 96px; position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -80px; top: -120px; width: 380px; height: 380px; border-radius: 50%;
+                 background: radial-gradient(circle, rgba(255,255,255,.16), transparent 68%); pointer-events: none; }
+  .hero .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand svg { width: 46px; height: 46px; flex: none; }
+  .brand h1 { margin: 0; font-size: 28px; letter-spacing: -.02em; line-height: 1.1; }
+  .brand p { margin: 3px 0 0; opacity: .82; font-size: 14.5px; }
+  .scan { background: #fff; color: #2c1fa8; border: 0; border-radius: 10px; padding: 10px 18px; font-weight: 600;
+          box-shadow: 0 4px 14px rgba(0,0,0,.18); transition: transform .12s, box-shadow .12s; }
+  .scan:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.24); }
+  .scan:disabled { opacity: .7; cursor: default; }
+
+  /* ---------- summary panel ---------- */
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+           margin-top: -66px; padding: 20px 22px; position: relative; z-index: 2; }
+  .panel-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .big { font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+  .big span { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 6px; }
+  .funnel { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--soft); margin: 14px 0 12px; }
+  .funnel i { display: block; height: 100%; transition: width .5s ease; }
+  .funnel .h { background: var(--human); } .funnel .r { background: var(--review); } .funnel .a { background: var(--ai); }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; }
+  .lg { display: flex; align-items: center; gap: 10px; }
+  .lg i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .lg b { font-size: 20px; letter-spacing: -.02em; }
+  .lg span { color: var(--muted); font-size: 13px; display: block; line-height: 1.2; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar { position: sticky; top: 0; z-index: 5; margin-top: 18px; padding: 10px 0;
+             background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(10px); }
+  .toolbar .wrap { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .seg { display: inline-flex; background: var(--soft); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; color: var(--muted); font-size: 14px; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.on { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .seg em { font-style: normal; font-size: 12px; opacity: .7; margin-left: 5px; }
   .spacer { flex: 1; }
-  select { font: inherit; background: var(--card); color: var(--ink); border: 1px solid var(--line);
-           border-radius: 8px; padding: 6px 8px; }
-  label.toggle { color: var(--muted); font-size: 13px; display: flex; gap: 5px; align-items: center; }
-  .runlog { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-            padding: 10px 14px; margin-bottom: 14px; font: 13px/1.5 ui-monospace, Consolas, monospace;
-            white-space: pre-wrap; color: var(--muted); }
+  select { font: inherit; font-size: 14px; background: var(--card); color: var(--ink); border: 1px solid var(--line);
+           border-radius: 9px; padding: 7px 10px; }
+  label.toggle { color: var(--muted); font-size: 13.5px; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  .runlog { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-top: 12px;
+            font: 13px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; color: var(--muted); }
   .runlog.show { display: block; }
-  .card { background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--line);
-          border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
-          display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
-  .card.HUMAN { border-left-color: var(--human); }
-  .card.REVIEW { border-left-color: var(--review); }
-  .card.AI { border-left-color: var(--ai); opacity: .8; }
-  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 99px; margin-right: 8px; }
-  .HUMAN .badge { background: var(--human-bg); color: var(--human); }
-  .REVIEW .badge { background: var(--review-bg); color: var(--review); }
-  .AI .badge { background: var(--ai-bg); color: var(--ai); }
-  .title { font-weight: 600; font-size: 16px; color: var(--ink); text-decoration: none; }
-  .title:hover { text-decoration: underline; }
-  .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .score { text-align: right; min-width: 90px; }
-  .score b { font-size: 32px; line-height: 1; letter-spacing: -.02em; }
-  .score span { display: block; color: var(--muted); font-size: 12px; }
-  .full { grid-column: 1 / -1; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .m { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
-  .m b { font-weight: 600; }
-  .flags { margin: 2px 0; padding: 0; list-style: none; }
-  .flags li { color: var(--ai); font-size: 13px; }
-  .flags li::before { content: "\26A0\FE0E  "; }
-  .explain { font-size: 13px; }
-  .explain summary { cursor: pointer; color: var(--muted); }
+
+  /* ---------- cards ---------- */
+  .list { margin-top: 6px; display: grid; gap: 12px; padding-bottom: 60px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
+          padding: 18px 20px; display: grid; grid-template-columns: auto 1fr auto; gap: 8px 16px; position: relative;
+          transition: transform .15s, box-shadow .15s; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(22,26,43,.06), 0 14px 30px rgba(22,26,43,.1); }
+  .card::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 4px; border-radius: 0 4px 4px 0; background: var(--line); }
+  .card.HUMAN::before { background: var(--human); } .card.REVIEW::before { background: var(--review); } .card.AI::before { background: var(--ai); }
+  .card.AI { background: color-mix(in srgb, var(--card) 92%, var(--ai-bg)); }
+
+  .avatar { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 20px; position: relative; }
+  .rank { position: absolute; left: -7px; top: -7px; background: var(--ink); color: var(--card); border-radius: 99px; font-size: 11px; font-weight: 700; padding: 1px 6px; }
+  .head { min-width: 0; }
+  .titleline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .title { font-weight: 650; font-size: 17px; letter-spacing: -.01em; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+  .title:hover { color: var(--accent); }
+  .pill { font-size: 12px; font-weight: 650; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+  .HUMAN .pill { background: var(--human-bg); color: var(--human); }
+  .REVIEW .pill { background: var(--review-bg); color: var(--review); }
+  .AI .pill { background: var(--ai-bg); color: var(--ai); }
+  .meta { color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+
+  .ring { --p: 0; --c: var(--human); width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; flex: none;
+          background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--soft) 0); position: relative; }
+  .ring::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--card); }
+  .ring b { position: relative; font-size: 21px; letter-spacing: -.03em; }
+  .ring.none { background: var(--soft); } .ring.none b { color: var(--muted); }
+  .scorebox { display: grid; justify-items: center; gap: 3px; }
+  .scorebox span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+
+  .stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 6px;
+           border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+  .stat { padding: 9px 6px; text-align: center; border-left: 1px solid var(--line); min-width: 0; }
+  .stat:first-child { border-left: 0; }
+  .stat b { display: block; font-size: 17px; letter-spacing: -.02em; }
+  .stat span { color: var(--muted); font-size: 12px; }
+
+  .checks { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13.5px; }
+  .chk { display: inline-flex; gap: 7px; align-items: center; color: var(--muted); }
+  .chk i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .chk.ok i { background: var(--human); } .chk.ok { color: var(--human); }
+  .chk.bad { color: var(--ai); font-weight: 600; } .chk.bad i { background: var(--ai); }
+  .flag { background: var(--ai-bg); color: var(--ai); border-radius: 8px; padding: 2px 10px; font-size: 13px; }
+
+  .explain { grid-column: 1 / -1; font-size: 13.5px; }
+  .explain summary { cursor: pointer; color: var(--muted); list-style: none; display: flex; gap: 8px; align-items: baseline; }
+  .explain summary::before { content: "\25B8"; transition: transform .15s; display: inline-block; }
+  .explain[open] summary::before { transform: rotate(90deg); }
   .explain summary:hover { color: var(--ink); }
-  .explain dl { margin: 8px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 8px; }
-  .explain dt { font-weight: 600; margin-top: 10px; }
-  .explain dt:first-child { margin-top: 0; }
-  .explain dd { margin: 2px 0 0; }
-  .explain .note { color: var(--muted); font-size: 12.5px; }
+  .explain dl { margin: 10px 0 0; padding: 14px 16px; background: var(--soft); border-radius: 12px; }
+  .explain dt { font-weight: 650; margin-top: 12px; } .explain dt:first-child { margin-top: 0; }
+  .explain dd { margin: 2px 0 0; } .explain .note { color: var(--muted); font-size: 12.5px; }
   .explain > .note { margin-top: 6px; }
-  .actions { display: flex; gap: 8px; align-items: center; }
-  .actions button, .actions a { font-size: 13px; padding: 4px 10px; }
-  .actions a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; }
-  .star.on { color: #e0a800; border-color: #e0a800; }
-  .empty { text-align: center; color: var(--muted); padding: 48px 0; }
-  .demo-tag { font-size: 11px; color: var(--muted); border: 1px dashed var(--line); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
-  @media (max-width: 560px) { .card { grid-template-columns: 1fr; } .score { text-align: left; } }
+
+  .actions { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; padding-top: 4px; }
+  .btn { border: 1px solid var(--line); background: var(--card); border-radius: 9px; padding: 5px 12px; font-size: 13.5px; text-decoration: none; color: var(--ink); }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.star.on { background: #fff6d6; border-color: #e5b400; color: #8a6500; }
+  .demo-tag { font-size: 11px; color: var(--muted); border: 1px dashed var(--line); border-radius: 5px; padding: 0 6px; }
+
+  .empty { text-align: center; padding: 56px 20px; color: var(--muted); background: var(--card); border: 1px dashed var(--line); border-radius: 16px; }
+  .empty b { display: block; color: var(--ink); font-size: 17px; margin-bottom: 4px; }
+  .skeleton { height: 150px; border-radius: 16px; background: linear-gradient(90deg, var(--soft), var(--card), var(--soft)); background-size: 200% 100%; animation: shimmer 1.3s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  @media (max-width: 620px) {
+    .hero { padding-bottom: 88px; }
+    .card { grid-template-columns: auto 1fr; }
+    .scorebox { grid-column: 1 / -1; grid-row: 2; justify-items: start; grid-auto-flow: column; align-items: center; gap: 10px; }
+    .stats { grid-template-columns: repeat(3, 1fr); } .stat:nth-child(4) { border-left: 0; }
+    .stat:nth-child(n+4) { border-top: 1px solid var(--line); }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>A&amp;R Radar</h1>
-      <p class="sub">Human-verified leads from SoundCloud, ranked by real traction.</p>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <circle cx="24" cy="24" r="22" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
+        <circle cx="24" cy="24" r="14" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
+        <circle cx="24" cy="24" r="6" stroke="#fff" stroke-opacity=".8" stroke-width="2"/>
+        <path d="M24 24 L40 12" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="34" cy="30" r="3" fill="#7dffb9"/>
+      </svg>
+      <div>
+        <h1>A&amp;R Radar</h1>
+        <p>Human-verified leads from SoundCloud, ranked by real traction.</p>
+      </div>
     </div>
-    <div class="actions">
-      <button id="scanBtn" class="primary">Scan now</button>
+    <button id="scanBtn" class="scan">Scan now</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="panel" aria-label="Scan summary">
+    <div class="panel-top">
+      <div class="big" id="total">0<span>tracks scanned</span></div>
+      <div class="meta" id="spamnote"></div>
     </div>
-  </header>
+    <div class="funnel" id="funnel"></div>
+    <div class="legend" id="legend"></div>
+  </section>
 
   <div id="runlog" class="runlog"></div>
-  <div class="stats" id="stats"></div>
+</main>
 
-  <div class="bar">
-    <button class="chip on" data-f="all">All</button>
-    <button class="chip" data-f="HUMAN">Human</button>
-    <button class="chip" data-f="REVIEW">Needs review</button>
-    <button class="chip" data-f="AI">AI (discarded)</button>
-    <button class="chip" data-f="star">&#9733; Shortlist</button>
+<nav class="toolbar" aria-label="Filters">
+  <div class="wrap">
+    <div class="seg" id="seg">
+      <button class="on" data-f="all">All<em id="c-all"></em></button>
+      <button data-f="HUMAN">Human<em id="c-HUMAN"></em></button>
+      <button data-f="REVIEW">Needs review<em id="c-REVIEW"></em></button>
+      <button data-f="AI">AI<em id="c-AI"></em></button>
+      <button data-f="star">&#9733; Shortlist<em id="c-star"></em></button>
+    </div>
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="demo"> Show demo data</label>
-    <select id="sort">
+    <select id="sort" aria-label="Sort">
       <option value="score">Sort: A&amp;R score</option>
       <option value="plays">Sort: plays</option>
       <option value="recent">Sort: newest upload</option>
       <option value="risk">Sort: bot risk</option>
     </select>
   </div>
+</nav>
 
-  <div id="list"></div>
-</div>
+<main class="wrap"><div class="list" id="list"></div></main>
 
 <script>
-const state = { tracks: [], filter: "all", sort: "score", demo: false };
+const $ = s => document.querySelector(s);
+const state = { tracks: [], filter: "all", sort: "score", demo: false, loaded: false };
 const LABEL = { HUMAN: "Human", REVIEW: "Needs review", AI: "AI" };
 
 // Titles and artist names come from SoundCloud, so build the DOM with textContent only.
@@ -136,22 +227,26 @@ function el(tag, props = {}, ...kids) {
 }
 const safeUrl = u => (typeof u === "string" && u.startsWith("https://")) ? u : "#";
 const fmt = n => (n == null ? "-" : Number(n).toLocaleString());
+const compact = n => (n == null ? "-" : Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n));
 
 function shortlist() {
   try { return new Set(JSON.parse(localStorage.getItem("shortlist") || "[]")); } catch { return new Set(); }
 }
-function saveShortlist(set) {
-  try { localStorage.setItem("shortlist", JSON.stringify([...set])); } catch {}
-}
+function saveShortlist(set) { try { localStorage.setItem("shortlist", JSON.stringify([...set])); } catch {} }
 function ageText(ts) {
   if (!ts) return "";
   const h = (Date.now() / 1000 - ts) / 3600;
-  return h < 48 ? `${Math.round(h)}h old` : `${Math.round(h / 24)}d old`;
+  return h < 48 ? `${Math.round(h)}h ago` : `${Math.round(h / 24)}d ago`;
+}
+function avatarColor(name) {
+  let h = 0; for (const ch of name) h = (h * 31 + ch.codePointAt(0)) % 360;
+  return `hsl(${h} 52% 46%)`;
 }
 
 async function load() {
   const res = await fetch("/api/tracks" + (state.demo ? "?demo=1" : ""));
   state.tracks = (await res.json()).tracks;
+  state.loaded = true;
   render();
 }
 
@@ -165,68 +260,101 @@ function sorted(list) {
   return [...list].sort(by);
 }
 
-function renderStats() {
+function renderSummary() {
   const t = state.tracks, n = v => t.filter(x => x.verdict === v).length;
-  const suspicious = t.filter(x => (x.bot_risk ?? 0) >= 40).length;
-  const spam = t.length ? Math.round(100 * n("AI") / t.length) : 0;
-  const cells = [
-    [t.length, "tracks scanned"], [n("HUMAN"), "human"], [n("REVIEW"), "need review"],
-    [n("AI"), `AI (${spam}% of scans)`], [suspicious, "suspicious plays"],
-  ];
-  $("#stats").replaceChildren(...cells.map(([v, l]) => el("div", { class: "stat" }, el("b", { text: v }), el("span", { text: l }))));
+  const counts = { HUMAN: n("HUMAN"), REVIEW: n("REVIEW"), AI: n("AI") };
+  const total = t.length;
+  $("#total").replaceChildren(String(total), el("span", { text: total === 1 ? "track scanned" : "tracks scanned" }));
+  const suspicious = t.filter(x => x.verdict !== "AI" && (x.bot_risk ?? 0) >= 40).length;
+  $("#spamnote").textContent = total ? `${Math.round(100 * counts.AI / total)}% flagged as AI` +
+    (suspicious ? ` · ${suspicious} with suspicious plays` : "") : "";
+
+  const seg = (cls, v) => el("i", { class: cls, style: `width:${total ? (100 * v / total) : 0}%` });
+  $("#funnel").replaceChildren(seg("h", counts.HUMAN), seg("r", counts.REVIEW), seg("a", counts.AI));
+  const lg = (color, v, label) => el("div", { class: "lg" }, el("i", { style: `background:var(--${color})` }),
+    el("div", {}, el("b", { text: v }), el("span", { text: label })));
+  $("#legend").replaceChildren(lg("human", counts.HUMAN, "human-made leads"),
+    lg("review", counts.REVIEW, "need a listen"), lg("ai", counts.AI, "AI, discarded"));
+
+  const stars = shortlist();
+  const set = { all: total, ...counts, star: t.filter(x => stars.has(x.url)).length };
+  for (const [k, v] of Object.entries(set)) $("#c-" + k).textContent = v;
 }
 
-function card(t, stars) {
-  const m = t.metrics || {};
-  const chips = t.followers == null && !m.plays ? [] : [
-    ["plays", fmt(m.plays)], ["likes", fmt(m.likes)], ["reposts", fmt(m.reposts)],
-    ["comments", fmt(m.comments)], ["followers", fmt(t.followers)],
-    ["plays/follower", m.plays_per_follower ?? "-"],
-  ].map(([k, v]) => el("span", { class: "m" }, el("b", { text: v + " " }), k));
+function botCheck(t) {
+  if (t.verdict === "AI") return null;
+  const plays = (t.metrics || {}).plays ?? 0;
+  if ((t.flags || []).length) return [el("span", { class: "chk bad" }, el("i"), `Play-farming risk ${t.bot_risk}/100`),
+    ...t.flags.map(f => el("span", { class: "flag", text: f }))];
+  if (plays < 1000) return [el("span", { class: "chk" }, el("i"), "Play-farming check needs about 1,000 plays. Too early to judge.")];
+  return [el("span", { class: "chk ok" }, el("i"), "No signs of play farming")];
+}
 
+function card(t, rank, stars) {
+  const m = t.metrics || {};
   const ex = t.explain || { headline: "", items: [], footer: "" };
-  const explainer = el("details", { class: "full explain" },
+  const first = Array.from((t.artist || "?").trim())[0] || "?";
+  const showRank = rank && t.score != null && state.sort === "score";
+
+  const avatar = el("div", { class: "avatar", style: `background:${avatarColor(t.artist || "")}`, "aria-hidden": "true" },
+    first.toUpperCase(), showRank ? el("span", { class: "rank", text: "#" + rank }) : null);
+
+  const meta = [t.artist, ageText(t.uploaded_at), t.genre, t.followers != null ? `${fmt(t.followers)} followers` : null]
+    .filter(Boolean).join(" · ");
+  const head = el("div", { class: "head" },
+    el("div", { class: "titleline" },
+      el("a", { class: "title", href: safeUrl(t.url), target: "_blank", rel: "noopener", text: t.title }),
+      el("span", { class: "pill", text: LABEL[t.verdict] || t.verdict }),
+      t.demo ? el("span", { class: "demo-tag", text: "demo" }) : null),
+    el("div", { class: "meta", text: meta }));
+
+  const ringColor = t.verdict === "REVIEW" ? "var(--review)" : "var(--human)";
+  const scorebox = el("div", { class: "scorebox" },
+    t.score == null
+      ? el("div", { class: "ring none" }, el("b", { text: "—" }))
+      : el("div", { class: "ring", style: `--p:${t.score};--c:${ringColor}` }, el("b", { text: t.score })),
+    el("span", { text: t.score == null ? "discarded" : "A&R score" }));
+
+  const hasStats = m.plays != null;
+  const stats = hasStats ? el("div", { class: "stats" }, [
+    ["plays", compact(m.plays)], ["likes", compact(m.likes)], ["reposts", compact(m.reposts)],
+    ["comments", compact(m.comments)], ["plays / follower", m.plays_per_follower ?? "-"],
+  ].map(([l, v]) => el("div", { class: "stat" }, el("b", { text: v }), el("span", { text: l })))) : null;
+
+  const checks = botCheck(t);
+  const explainer = el("details", { class: "explain" },
     el("summary", { text: ex.headline || "HumanStandard evidence" }),
     el("dl", {}, ex.items.map(i => [
       el("dt", { text: i.label }), el("dd", { text: i.value }), el("dd", { class: "note", text: i.note })]).flat()),
     ex.footer ? el("div", { class: "note", text: ex.footer }) : null);
 
-  const meta = [t.artist, ageText(t.uploaded_at), t.genre].filter(Boolean).join(" · ");
   const isStar = stars.has(t.url);
-  const star = el("button", { class: "star" + (isStar ? " on" : ""), text: isStar ? "★ Shortlisted" : "☆ Shortlist",
-    onclick: () => { const s = shortlist(); s.has(t.url) ? s.delete(t.url) : s.add(t.url); saveShortlist(s); render(); } });
+  const actions = el("div", { class: "actions" },
+    el("button", { class: "btn star" + (isStar ? " on" : ""), text: isStar ? "★ Shortlisted" : "☆ Shortlist",
+      onclick: () => { const s = shortlist(); s.has(t.url) ? s.delete(t.url) : s.add(t.url); saveShortlist(s); render(); } }),
+    t.report ? el("a", { class: "btn", href: "/reports/" + encodeURIComponent(t.report), target: "_blank", text: "Full report" }) : null,
+    el("a", { class: "btn", href: safeUrl(t.url), target: "_blank", rel: "noopener", text: "Listen ↗" }));
 
-  return el("div", { class: `card ${t.verdict}` },
-    el("div", {},
-      el("div", {}, el("span", { class: "badge", text: LABEL[t.verdict] || t.verdict }),
-        el("a", { class: "title", href: safeUrl(t.url), target: "_blank", rel: "noopener", text: t.title }),
-        t.demo ? el("span", { class: "demo-tag", text: "demo" }) : null),
-      el("div", { class: "meta", text: meta })),
-    el("div", { class: "score" },
-      t.score == null ? el("b", { text: t.verdict === "AI" ? "—" : "?" }) : el("b", { text: t.score }),
-      el("span", { text: t.verdict === "AI" ? "discarded" : "A&R score" }),
-      t.bot_risk != null ? el("span", { text: `bot risk ${t.bot_risk}` }) : null),
-    chips.length ? el("div", { class: "full chips" }, chips) : null,
-    (t.flags || []).length ? el("ul", { class: "full flags" }, t.flags.map(f => el("li", { text: f }))) : null,
-    explainer,
-    el("div", { class: "full actions" }, star,
-      t.report ? el("a", { href: "/reports/" + encodeURIComponent(t.report), target: "_blank", text: "Full report" }) : null));
+  return el("article", { class: `card ${t.verdict}` }, avatar, head, scorebox, stats,
+    checks ? el("div", { class: "checks" }, checks) : null, explainer, actions);
 }
 
 function render() {
-  renderStats();
+  renderSummary();
   const stars = shortlist();
   let list = state.tracks;
   if (state.filter === "star") list = list.filter(t => stars.has(t.url));
   else if (state.filter !== "all") list = list.filter(t => t.verdict === state.filter);
   list = sorted(list);
-  $("#list").replaceChildren(...(list.length ? list.map(t => card(t, stars))
-    : [el("div", { class: "empty", text: state.tracks.length ? "Nothing matches this filter." : "No scans yet. Click “Scan now”." })]));
+  let rank = 0;
+  const nodes = list.map(t => card(t, t.score != null ? ++rank : 0, stars));
+  $("#list").replaceChildren(...(nodes.length ? nodes : [el("div", { class: "empty" },
+    el("b", { text: state.tracks.length ? "Nothing matches this filter" : "No scans yet" }),
+    state.tracks.length ? "Try another tab above." : "Click “Scan now” to look for new artists.")]));
 }
 
-const $ = s => document.querySelector(s);
-document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
-  document.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x === b));
+document.querySelectorAll("#seg button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("#seg button").forEach(x => x.classList.toggle("on", x === b));
   state.filter = b.dataset.f; render();
 }));
 $("#sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
@@ -253,6 +381,7 @@ $("#scanBtn").addEventListener("click", async () => {
   poll();
 });
 
+$("#list").replaceChildren(...[0, 1, 2].map(() => el("div", { class: "skeleton" })));
 load();
 // If a scan is already running (page reload mid-scan), reattach to it.
 fetch("/api/status").then(r => r.json()).then(s => { if (s.running) { $("#scanBtn").disabled = true; poll(); } });
