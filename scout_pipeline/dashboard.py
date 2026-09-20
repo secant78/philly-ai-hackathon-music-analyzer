@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import config
 import db
+import explain
 
 PORT = 8000
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
@@ -30,7 +31,6 @@ def load_tracks(include_demo: bool) -> list[dict]:
     for url, title, artist, verdict, evidence, scanned_at, details in rows:
         ev = json.loads(evidence or "{}")
         d = json.loads(details or "{}")
-        timeline = ev.get("risk_timeline") or []
         out.append(
             {
                 "url": url,
@@ -48,14 +48,7 @@ def load_tracks(include_demo: bool) -> list[dict]:
                 "metrics": d.get("metrics") or {},
                 "report": d.get("report"),
                 "demo": "/demo/" in url,
-                "evidence": {
-                    "confidence": ev.get("confidence"),
-                    "origin": ev.get("origin"),
-                    "label": ev.get("industry_label"),
-                    "label_status": ev.get("industry_label_status"),
-                    "nearest": (ev.get("origin_map") or {}).get("summary_line"),
-                    "peak_risk": max(timeline) if timeline else None,
-                },
+                "explain": explain.explain(verdict, ev),
             }
         )
     # Best leads first; discarded AI tracks and rows without a score go last.

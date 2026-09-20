@@ -66,7 +66,15 @@
   .flags { margin: 2px 0; padding: 0; list-style: none; }
   .flags li { color: var(--ai); font-size: 13px; }
   .flags li::before { content: "\26A0\FE0E  "; }
-  .ev { color: var(--muted); font-size: 13px; }
+  .explain { font-size: 13px; }
+  .explain summary { cursor: pointer; color: var(--muted); }
+  .explain summary:hover { color: var(--ink); }
+  .explain dl { margin: 8px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 8px; }
+  .explain dt { font-weight: 600; margin-top: 10px; }
+  .explain dt:first-child { margin-top: 0; }
+  .explain dd { margin: 2px 0 0; }
+  .explain .note { color: var(--muted); font-size: 12.5px; }
+  .explain > .note { margin-top: 6px; }
   .actions { display: flex; gap: 8px; align-items: center; }
   .actions button, .actions a { font-size: 13px; padding: 4px 10px; }
   .actions a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; }
@@ -176,12 +184,12 @@ function card(t, stars) {
     ["plays/follower", m.plays_per_follower ?? "-"],
   ].map(([k, v]) => el("span", { class: "m" }, el("b", { text: v + " " }), k));
 
-  const ev = t.evidence || {};
-  const evParts = [];
-  if (ev.confidence != null) evParts.push(`HumanStandard confidence ${Math.round(ev.confidence * 100)}%`);
-  if (ev.origin && !["human", "uncertain"].includes(ev.origin)) evParts.push(`likely ${ev.origin}`);
-  if (ev.label_status) evParts.push(ev.label_status.replace(/_/g, " "));
-  if (ev.peak_risk != null && t.verdict !== "HUMAN") evParts.push(`peak AI risk ${Math.round(ev.peak_risk * 100)}%`);
+  const ex = t.explain || { headline: "", items: [], footer: "" };
+  const explainer = el("details", { class: "full explain" },
+    el("summary", { text: ex.headline || "HumanStandard evidence" }),
+    el("dl", {}, ex.items.map(i => [
+      el("dt", { text: i.label }), el("dd", { text: i.value }), el("dd", { class: "note", text: i.note })]).flat()),
+    ex.footer ? el("div", { class: "note", text: ex.footer }) : null);
 
   const meta = [t.artist, ageText(t.uploaded_at), t.genre].filter(Boolean).join(" · ");
   const isStar = stars.has(t.url);
@@ -200,8 +208,7 @@ function card(t, stars) {
       t.bot_risk != null ? el("span", { text: `bot risk ${t.bot_risk}` }) : null),
     chips.length ? el("div", { class: "full chips" }, chips) : null,
     (t.flags || []).length ? el("ul", { class: "full flags" }, t.flags.map(f => el("li", { text: f }))) : null,
-    evParts.length ? el("div", { class: "full ev", text: evParts.join(" · ") }) : null,
-    ev.nearest ? el("div", { class: "full ev", text: ev.nearest }) : null,
+    explainer,
     el("div", { class: "full actions" }, star,
       t.report ? el("a", { href: "/reports/" + encodeURIComponent(t.report), target: "_blank", text: "Full report" }) : null));
 }

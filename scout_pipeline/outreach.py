@@ -6,6 +6,7 @@ from datetime import datetime
 import httpx
 
 import config
+import explain
 from analyst import Assessment
 from scout import Track
 
@@ -21,24 +22,18 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "track"
 
 
-def evidence_rows(evidence: dict) -> str:
-    """Pick the readable HumanStandard fields instead of dumping the raw payload."""
-    timeline = evidence.get("risk_timeline") or []
-    fields = {
-        "verdict": evidence.get("verdict"),
-        "confidence": evidence.get("confidence"),
-        "detected origin": evidence.get("origin"),
-        "label": evidence.get("industry_label"),
-        "label status": evidence.get("industry_label_status"),
-        "nearest reference recordings": (evidence.get("origin_map") or {}).get("summary_line"),
-        "peak AI risk in track": max(timeline) if timeline else None,
-        "model version": evidence.get("model_version"),
-    }
-    return "".join(
-        f"<tr><td>{html.escape(k)}</td><td>{html.escape(str(v))}</td></tr>"
-        for k, v in fields.items()
-        if v is not None
+def evidence_html(verdict: str, evidence: dict) -> str:
+    """The HumanStandard result in plain language, each field with a one-line explanation."""
+    e = explain.explain(verdict, evidence)
+    esc = html.escape
+    rows = "".join(
+        f"<dt style='font-weight:600;margin-top:.8rem'>{esc(i['label'])}</dt>"
+        f"<dd style='margin:.1rem 0 0'>{esc(i['value'])}</dd>"
+        f"<dd style='margin:.1rem 0 0;color:#666;font-size:.9em'>{esc(i['note'])}</dd>"
+        for i in e["items"]
     )
+    footer = f"<p style='color:#888;font-size:.85em'>{esc(e['footer'])}</p>" if e["footer"] else ""
+    return f"<p><b>{esc(e['headline'])}</b></p><dl style='margin:0'>{rows}</dl>{footer}"
 
 
 def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score: int) -> str:
@@ -61,7 +56,7 @@ def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score
  &nbsp; A&amp;R score <b>{score}/100</b> · bot risk <b>{a.bot_risk}/100</b> · momentum <b>{a.momentum}/100</b></p>
 {note}<h3>Traction</h3><table cellpadding="4">{rows}</table>
 <h3>Bot &amp; hype flags</h3><ul>{flags}</ul>
-<h3>HumanStandard evidence</h3><table cellpadding="4">{evidence_rows(evidence)}</table>
+<h3>HumanStandard evidence</h3>{evidence_html(verdict, evidence)}
 <p style="color:#888;font-size:.85em">Generated {datetime.now():%Y-%m-%d %H:%M}</p></body>"""
 
 
