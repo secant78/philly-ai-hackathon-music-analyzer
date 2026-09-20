@@ -83,8 +83,8 @@ Set these in `scout_pipeline/.env`:
 The score ranks how promising a track is. It is separate from the human or AI verdict, which only decides whether a track gets a score at all.
 
 - **Momentum (0-100):** engagement quality (60%) and reach (40%). Engagement weights comments most, then reposts, then likes, and is damped for tracks with very few plays.
-- **Bot risk (0-100):** penalties for play-farming patterns, such as plays far above follower count or a very low like rate on a high-play track. These checks only apply above roughly 1,000 plays, so on small tracks bot risk is 0 because there is too little data to judge, not because the track was proven clean.
-- **Score = momentum x (1 - bot risk / 100)**, reduced by 20% for borderline verdicts.
+- **Play-farming penalty:** patterns such as plays far above follower count, or a very low like rate on a high-play track, lower a track's score. These checks only apply above roughly 1,000 plays, so most small tracks are unaffected. A "Suspicious plays" warning appears on a track only when a pattern is detected.
+- **Score = momentum, reduced by the play-farming penalty**, and by a further 20% for borderline verdicts.
 
 ## Honest limitations
 

@@ -107,7 +107,7 @@ def run(demo: bool) -> int:
             print(f"  AI     {label}: discarded, logged as synthetic spam")
             continue
         tag = "REVIEW" if result.verdict == forensic.REVIEW else "HUMAN "
-        print(f"  {tag} {label}: score {score}, bot risk {a.bot_risk}")
+        print(f"  {tag} {label}: score {score}" + (f"  [!] {'; '.join(a.flags)}" if a.flags else ""))
         if score >= config.ALERT_MIN_SCORE and a.bot_risk < 50:
             outreach.alert(track, result.verdict, a, score)
     print("Done.")

@@ -201,7 +201,6 @@
       <option value="score">Sort: A&amp;R score</option>
       <option value="plays">Sort: plays</option>
       <option value="recent">Sort: newest upload</option>
-      <option value="risk">Sort: bot risk</option>
     </select>
   </div>
 </nav>
@@ -255,7 +254,6 @@ function sorted(list) {
     score: (a, b) => (b.score ?? -1) - (a.score ?? -1),
     plays: (a, b) => (b.metrics.plays ?? -1) - (a.metrics.plays ?? -1),
     recent: (a, b) => (b.uploaded_at ?? 0) - (a.uploaded_at ?? 0),
-    risk: (a, b) => (b.bot_risk ?? -1) - (a.bot_risk ?? -1),
   }[state.sort];
   return [...list].sort(by);
 }
@@ -281,13 +279,11 @@ function renderSummary() {
   for (const [k, v] of Object.entries(set)) $("#c-" + k).textContent = v;
 }
 
+// Only shown when a play-farming pattern is actually detected; clean tracks show nothing.
 function botCheck(t) {
-  if (t.verdict === "AI") return null;
-  const plays = (t.metrics || {}).plays ?? 0;
-  if ((t.flags || []).length) return [el("span", { class: "chk bad" }, el("i"), `Play-farming risk ${t.bot_risk}/100`),
+  if (t.verdict === "AI" || !(t.flags || []).length) return null;
+  return [el("span", { class: "chk bad" }, el("i"), "Suspicious plays"),
     ...t.flags.map(f => el("span", { class: "flag", text: f }))];
-  if (plays < 1000) return [el("span", { class: "chk" }, el("i"), "Play-farming check needs about 1,000 plays. Too early to judge.")];
-  return [el("span", { class: "chk ok" }, el("i"), "No signs of play farming")];
 }
 
 function card(t, rank, stars) {

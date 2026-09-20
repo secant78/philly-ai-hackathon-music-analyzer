@@ -89,16 +89,12 @@ def traction_html(a: Assessment) -> str:
     return f"<div class='grid'>{''.join(tiles)}</div>"
 
 
-def bot_risk_html(a: Assessment) -> str:
-    esc = html.escape
-    if a.flags:
-        return "".join(f"<p class='flag'>&#9888; {esc(f)}</p>" for f in a.flags)
-    if a.metrics["plays"] < 1000:
-        return (
-            "<p class='ok'>Not enough plays to judge. The play-farming checks start at around "
-            "1,000 plays, so a score of 0 here means no data, not a clean bill of health.</p>"
-        )
-    return "<p class='ok'>No suspicious patterns found: plays, likes, comments and followers look consistent.</p>"
+def play_warning_html(a: Assessment) -> str:
+    """A warning card, only when a play-farming pattern was detected."""
+    if not a.flags:
+        return ""
+    items = "".join(f"<p class='flag'>&#9888; {html.escape(f)}</p>" for f in a.flags)
+    return f"<div class='card'><h2>Suspicious plays</h2>{items}</div>"
 
 
 def evidence_html(verdict: str, evidence: dict) -> str:
@@ -136,10 +132,9 @@ def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score
 </div>
 <div class="pills">
   <span class="pill">Momentum <b>{a.momentum}</b>/100</span>
-  <span class="pill">Bot risk <b>{a.bot_risk}</b>/100</span>
 </div>{notice}</div>
 <div class="card"><h2>Traction</h2>{traction_html(a)}</div>
-<div class="card"><h2>Bot &amp; play-farming check</h2>{bot_risk_html(a)}</div>
+{play_warning_html(a)}
 <div class="card"><h2>HumanStandard evidence</h2>{evidence_html(verdict, evidence)}</div>
 <p class="foot">Generated {datetime.now():%Y-%m-%d %H:%M}. The A&amp;R score is a heuristic for ranking leads, not a prediction.</p>
 </div></body></html>"""
@@ -155,7 +150,7 @@ def write_report(track, verdict, evidence, a, score):
 def alert(track: Track, verdict: str, a: Assessment, score: int) -> None:
     line = (
         f"*{verdict}* lead: {track.artist} - {track.title}\n"
-        f"A&R score {score}/100 · bot risk {a.bot_risk} · {a.metrics['plays']:,} plays\n{track.url}"
+        f"A&R score {score}/100 · {a.metrics['plays']:,} plays\n{track.url}"
     )
     if config.SLACK_WEBHOOK_URL:
         httpx.post(config.SLACK_WEBHOOK_URL, json={"text": line}, timeout=15)
