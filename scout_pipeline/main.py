@@ -67,9 +67,12 @@ def run(demo: bool) -> int:
     tracks.sort(key=priority, reverse=True)
     print(f"Scout: {len(tracks)} new tracks (scan budget {config.MAX_SCANS_PER_RUN})")
 
+    # One track per artist, and never an artist we already scanned: credits are for
+    # finding new leads, not for re-scanning the same act.
+    seen_artists = {row[0] for row in conn.execute("SELECT artist FROM tracks")}
     scans = 0
     for track in tracks:
-        if db.already_scanned(conn, track.url):
+        if db.already_scanned(conn, track.url) or track.artist in seen_artists:
             continue
         if scans >= config.MAX_SCANS_PER_RUN:
             print("Scan budget reached; remaining tracks wait for the next run.")
@@ -83,6 +86,7 @@ def run(demo: bool) -> int:
 
                 result = forensic.analyze(scout.download_audio(track))
             scans += 1
+            seen_artists.add(track.artist)
         except Exception as exc:  # keep going; one bad track shouldn't stop the run
             print(f"  ERROR  {label}: {exc}")
             continue
