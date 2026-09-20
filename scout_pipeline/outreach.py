@@ -10,6 +10,51 @@ import explain
 from analyst import Assessment
 from scout import Track
 
+VERDICT_LABEL = {"HUMAN": "Human", "REVIEW": "Needs review", "AI": "AI"}
+
+STYLE = """
+:root { --bg:#f5f6f8; --card:#fff; --ink:#1b1f24; --muted:#667085; --line:#e3e6ea; --accent:#3b5bdb;
+        --human:#1a9850; --review:#d98a00; --ai:#d73027; --human-bg:#e6f4ec; --review-bg:#fdf1dc; --ai-bg:#fbe6e4; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0f1216; --card:#171b21; --ink:#e8ebef; --muted:#98a2b3; --line:#262c35; --accent:#7b93ff;
+          --human:#46c37b; --review:#f0b03a; --ai:#ff6b62; --human-bg:#14301f; --review-bg:#3a2c0c; --ai-bg:#3c1815; }
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+.wrap { max-width:720px; margin:0 auto; padding:28px 16px 56px; }
+h1 { margin:0 0 2px; font-size:24px; letter-spacing:-.01em; }
+h2 { margin:0 0 10px; font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+a { color:var(--accent); }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; margin-top:14px; }
+.top { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+.meta { color:var(--muted); }
+.badge { display:inline-block; font-size:12px; font-weight:600; padding:2px 10px; border-radius:99px; margin-bottom:8px; }
+.HUMAN .badge { background:var(--human-bg); color:var(--human); }
+.REVIEW .badge { background:var(--review-bg); color:var(--review); }
+.AI .badge { background:var(--ai-bg); color:var(--ai); }
+.score { text-align:right; }
+.score b { display:block; font-size:44px; line-height:1; letter-spacing:-.02em; }
+.score span { color:var(--muted); font-size:13px; }
+.pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.pill { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; }
+.pill b { font-size:15px; }
+.notice { margin-top:14px; padding:10px 14px; border-radius:8px; background:var(--review-bg); color:var(--review); }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+.tile { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+.tile b { display:block; font-size:22px; letter-spacing:-.01em; }
+.tile span { color:var(--muted); font-size:13px; }
+.tile small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+.flag { color:var(--ai); margin:4px 0; }
+.ok { color:var(--muted); margin:0; }
+dl { margin:0; }
+dt { font-weight:600; margin-top:14px; }
+dt:first-child { margin-top:0; }
+dd { margin:2px 0 0; }
+dd.note { color:var(--muted); font-size:13px; }
+.foot { color:var(--muted); font-size:12.5px; margin-top:18px; }
+@media (max-width:520px) { .top { flex-direction:column; } .score { text-align:left; } }
+"""
+
 
 def scorecard_score(verdict: str, a: Assessment) -> int:
     base = a.momentum * (1 - a.bot_risk / 100)
@@ -22,42 +67,82 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "track"
 
 
+def _age(hours: float) -> str:
+    return f"{round(hours)} hours ago" if hours < 48 else f"{round(hours / 24)} days ago"
+
+
+def _tile(esc, label: str, value: str, note: str = "") -> str:
+    small = f"<small>{esc(note)}</small>" if note else ""
+    return f"<div class='tile'><b>{esc(value)}</b><span>{esc(label)}</span>{small}</div>"
+
+
+def traction_html(a: Assessment) -> str:
+    esc, m = html.escape, a.metrics
+    tiles = [
+        _tile(esc, "plays", f"{m['plays']:,}", f"about {m['plays_per_hour']:g} per hour"),
+        _tile(esc, "likes", f"{m['likes']:,}", f"{m['like_rate']:.1%} of plays"),
+        _tile(esc, "reposts", f"{m['reposts']:,}"),
+        _tile(esc, "comments", f"{m['comments']:,}"),
+        _tile(esc, "followers", f"{m['followers']:,}", f"{m['plays_per_follower']:g} plays per follower"),
+        _tile(esc, "uploaded", _age(m["age_hours"])),
+    ]
+    return f"<div class='grid'>{''.join(tiles)}</div>"
+
+
+def bot_risk_html(a: Assessment) -> str:
+    esc = html.escape
+    if a.flags:
+        return "".join(f"<p class='flag'>&#9888; {esc(f)}</p>" for f in a.flags)
+    if a.metrics["plays"] < 1000:
+        return (
+            "<p class='ok'>Not enough plays to judge. The play-farming checks start at around "
+            "1,000 plays, so a score of 0 here means no data, not a clean bill of health.</p>"
+        )
+    return "<p class='ok'>No suspicious patterns found: plays, likes, comments and followers look consistent.</p>"
+
+
 def evidence_html(verdict: str, evidence: dict) -> str:
     """The HumanStandard result in plain language, each field with a one-line explanation."""
     e = explain.explain(verdict, evidence)
     esc = html.escape
     rows = "".join(
-        f"<dt style='font-weight:600;margin-top:.8rem'>{esc(i['label'])}</dt>"
-        f"<dd style='margin:.1rem 0 0'>{esc(i['value'])}</dd>"
-        f"<dd style='margin:.1rem 0 0;color:#666;font-size:.9em'>{esc(i['note'])}</dd>"
+        f"<dt>{esc(i['label'])}</dt><dd>{esc(i['value'])}</dd><dd class='note'>{esc(i['note'])}</dd>"
         for i in e["items"]
     )
-    footer = f"<p style='color:#888;font-size:.85em'>{esc(e['footer'])}</p>" if e["footer"] else ""
-    return f"<p><b>{esc(e['headline'])}</b></p><dl style='margin:0'>{rows}</dl>{footer}"
+    footer = f"<p class='foot'>{esc(e['footer'])}</p>" if e["footer"] else ""
+    return f"<p><b>{esc(e['headline'])}</b></p><dl>{rows}</dl>{footer}"
 
 
 def render_html(track: Track, verdict: str, evidence: dict, a: Assessment, score: int) -> str:
     esc = html.escape
-    color = {"HUMAN": "#1a9850", "REVIEW": "#f5a623", "AI": "#d73027"}[verdict]
-    rows = "".join(
-        f"<tr><td>{esc(k.replace('_', ' '))}</td><td>{esc(str(v))}</td></tr>"
-        for k, v in a.metrics.items()
-    )
-    flags = "".join(f"<li>{esc(f)}</li>" for f in a.flags) or "<li>None</li>"
-    note = (
-        "<p><b>Review needed:</b> HumanStandard could not make a confident call, so listen before acting.</p>"
+    url = track.url if track.url.startswith("https://") else "#"
+    notice = (
+        "<div class='notice'><b>Review needed.</b> HumanStandard could not make a confident call, "
+        "so listen before acting.</div>"
         if verdict == "REVIEW"
         else ""
     )
-    return f"""<!doctype html><meta charset="utf-8"><title>A&amp;R Scorecard: {esc(track.title)}</title>
-<body style="font-family:system-ui;max-width:640px;margin:2rem auto;color:#222">
-<h1>{esc(track.title)}</h1><p>{esc(track.artist)} · <a href="{esc(track.url)}">listen</a></p>
-<p><span style="background:{color};color:#fff;padding:.2rem .6rem;border-radius:4px">{esc(verdict)}</span>
- &nbsp; A&amp;R score <b>{score}/100</b> · bot risk <b>{a.bot_risk}/100</b> · momentum <b>{a.momentum}/100</b></p>
-{note}<h3>Traction</h3><table cellpadding="4">{rows}</table>
-<h3>Bot &amp; hype flags</h3><ul>{flags}</ul>
-<h3>HumanStandard evidence</h3>{evidence_html(verdict, evidence)}
-<p style="color:#888;font-size:.85em">Generated {datetime.now():%Y-%m-%d %H:%M}</p></body>"""
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A&amp;R Scorecard: {esc(track.title)}</title><style>{STYLE}</style></head>
+<body><div class="wrap {esc(verdict)}">
+<div class="card"><div class="top">
+  <div>
+    <span class="badge">{esc(VERDICT_LABEL[verdict])}</span>
+    <h1>{esc(track.title)}</h1>
+    <div class="meta">{esc(track.artist)} &middot; <a href="{esc(url)}" target="_blank" rel="noopener">listen on SoundCloud</a></div>
+  </div>
+  <div class="score"><b>{score}</b><span>A&amp;R score (0-100)</span></div>
+</div>
+<div class="pills">
+  <span class="pill">Momentum <b>{a.momentum}</b>/100</span>
+  <span class="pill">Bot risk <b>{a.bot_risk}</b>/100</span>
+</div>{notice}</div>
+<div class="card"><h2>Traction</h2>{traction_html(a)}</div>
+<div class="card"><h2>Bot &amp; play-farming check</h2>{bot_risk_html(a)}</div>
+<div class="card"><h2>HumanStandard evidence</h2>{evidence_html(verdict, evidence)}</div>
+<p class="foot">Generated {datetime.now():%Y-%m-%d %H:%M}. The A&amp;R score is a heuristic for ranking leads, not a prediction.</p>
+</div></body></html>"""
 
 
 def write_report(track, verdict, evidence, a, score):
