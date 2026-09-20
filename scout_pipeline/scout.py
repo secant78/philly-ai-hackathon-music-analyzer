@@ -55,6 +55,15 @@ def _track_from_api(t: dict) -> Track:
     )
 
 
+def _created_at_window() -> str:
+    """Smallest SoundCloud search window that covers MAX_AGE_HOURS."""
+    hours = config.MAX_AGE_HOURS
+    for name, limit in (("last_hour", 1), ("last_day", 24), ("last_week", 168), ("last_month", 720)):
+        if hours <= limit:
+            return name
+    return "last_year"
+
+
 def _fetch_tracks(client: httpx.Client, cid: str) -> list[dict]:
     raw: list[dict] = []
     for query in config.SC_QUERIES:
@@ -63,7 +72,7 @@ def _fetch_tracks(client: httpx.Client, cid: str) -> list[dict]:
             params={
                 "q": query,
                 "client_id": cid,
-                "filter.created_at": "last_day",
+                "filter.created_at": _created_at_window(),
                 "limit": config.RESULTS_PER_QUERY,
             },
         )

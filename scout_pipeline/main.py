@@ -42,6 +42,13 @@ def run(demo: bool) -> int:
 
         seen = {row[0] for row in conn.execute("SELECT url FROM tracks")}
         tracks = scout.discover(seen)
+    # Credits are scarce, so scan the tracks with the best traction first. Suspected
+    # play farming sinks to the bottom, because momentum is discounted by bot risk.
+    def priority(track: Track) -> float:
+        a = analyst.assess(track)
+        return a.momentum * (1 - a.bot_risk / 100)
+
+    tracks.sort(key=priority, reverse=True)
     print(f"Scout: {len(tracks)} new tracks (scan budget {config.MAX_SCANS_PER_RUN})")
 
     scans = 0
